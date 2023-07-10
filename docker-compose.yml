@@ -1,0 +1,7 @@
+version: '3'
+
+services:
+  mywebsite:
+    image: heroku-docker
+    ports:
+      - 8089:3000
