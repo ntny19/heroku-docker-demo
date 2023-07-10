@@ -5,17 +5,33 @@ version: 2.1
 # See: https://circleci.com/docs/orb-intro/
 orbs:
   node: circleci/node@4.7
+  docker: circleci/docker@1.4.0
 
-# Invoke jobs via workflows
-# See: https://circleci.com/docs/configuration-reference/#workflows
+jobs:
+  deploy:
+    executor: docker/docker
+    steps:
+      - setup_remote_docker
+      - checkout
+      - run:
+          name: Install Heroku CLI
+          command: |
+            set -x
+            sudo curl https://cli-assets.heroku.com/install.sh | sh
+            HEROKU_API_KEY=${HEROKU_API_KEY} heroku container:login
+            HEROKU_API_KEY=${HEROKU_API_KEY} heroku container:push -a desolate-taiga-12626 web
+            HEROKU_API_KEY=${HEROKU_API_KEY} heroku container:release -a desolate-taiga-12626 web
+
 workflows:
-  sample: # This is the name of the workflow, feel free to change it to better match your workflow.
-    # Inside the workflow, you define the jobs you want to run.
+  test-and-deploy: 
     jobs:
       - node/test:
-          # This is the node version to use for the `cimg/node` tag
-          # Relevant tags can be found on the CircleCI Developer Hub
-          # https://circleci.com/developer/images/image/cimg/node
           version: '16.10'
-          # If you are using yarn, change the line below from "npm" to "yarn"
           pkg-manager: npm
+      - deploy:
+          requires:
+              - node/test
+          filters:
+            branches:
+              only:
+                master
