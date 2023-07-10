@@ -1,0 +1,37 @@
+# This config is equivalent to both the '.circleci/extended/orb-free.yml' and the base '.circleci/config.yml'
+version: 2.1
+
+# Orbs are reusable packages of CircleCI configuration that you may share across projects, enabling you to create encapsulated, parameterized commands, jobs, and executors that can be used across multiple projects.
+# See: https://circleci.com/docs/orb-intro/
+orbs:
+  node: circleci/node@4.7
+  docker: circleci/docker@1.4.0
+
+jobs:
+  deploy:
+    executor: docker/docker
+    steps:
+      - setup_remote_docker
+      - checkout
+      - run:
+          name: Install Heroku CLI
+          command: |
+            set -x
+            sudo curl https://cli-assets.heroku.com/install.sh | sh
+            HEROKU_API_KEY=${HEROKU_API_KEY} heroku container:login
+            HEROKU_API_KEY=${HEROKU_API_KEY} heroku container:push -a desolate-taiga-12626 web
+            HEROKU_API_KEY=${HEROKU_API_KEY} heroku container:release -a desolate-taiga-12626 web
+
+workflows:
+  test-and-deploy: 
+    jobs:
+      - node/test:
+          version: '16.10'
+          pkg-manager: npm
+      - deploy:
+          requires:
+              - node/test
+          filters:
+            branches:
+              only:
+                master
